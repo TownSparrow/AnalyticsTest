@@ -1,0 +1,62 @@
+# AnalyticsTest (Unity + GameAnalytics)
+
+A minimal Unity project that tracks red/green button taps via GameAnalytics Design events, including a clean ATT consent flow and device-build instructions. The target platform is mobile.
+
+## Current list of supported OS's
+- iOS
+
+## Features
+- Tracks per-tap events for red/green buttons using hierarchical Design event IDs (e.g., `ui:button:tap:red`).
+- Optional per-session aggregation: send a single numeric value event per color on pause/quit to reduce event volume.
+- iOS App Tracking Transparency request before initializing the SDK, with required Info.plist usage string.
+- Device-build ready; events do not send from the Unity Editor by design.
+
+## Tech Stack
+- Unity 6000.0.60f1 (IL2CPP, ARM64) with iOS build support.
+- C# (.NET Standard 2.1) with Unity’s standard scripting workflow.
+- GameAnalytics Unity SDK.
+
+## Getting Started
+
+### 1) Install GameAnalytics SDK
+- Import the SDK (UPM, .unitypackage, or GitHub) following the official Unity integration guide.
+- Open Unity → Window → GameAnalytics → Select Settings, log in, and Add Platform (iOS/Android/etc.) so Game Key and Secret Key populate locally.
+- Important! Keep keys out of version control! Each developer should log in and fetch keys on their own machine!
+
+### 2) iOS ATT and Info.plist
+- Add the required usage string in Player Settings → iOS → Info.plist additions:  
+  `<key>NSUserTrackingUsageDescription</key><string>Identifier is used for analytics and personalization.</string>`
+- Request ATT before SDK initialization on iOS; always initialize the SDK whether the user authorizes or denies.
+- If you see a Local Network dialog in Development builds, it’s typically Unity PlayerConnection/Profiler discovery and is expected in dev flows.
+
+### 3) Add the GameAnalytics object and initialize
+- Create the GameAnalytics object: Window → GameAnalytics → Create GameAnalytics object (ensure only one exists).
+- Initialize from your script after the GA object’s Awake:  
+  `GameAnalytics.Initialize();`
+- Do not send events before initialization; submit events from Start or later on the main thread.
+
+## Event Tracking
+
+### Per-tap events (immediate)
+- Event IDs: `ui:button:tap:red` and `ui:button:tap:green`.
+- Example: `GameAnalytics.NewDesignEvent("ui:button:tap:red");`
+
+### Aggregated per-session events
+- Buffer counts per color and flush on pause/quit with a numeric value (e.g., 17 taps):  
+  `GameAnalytics.NewDesignEvent("ui:button:tap:red", 17);`
+- This reduces event volume and keeps event schema stable.
+
+## Build & Run (iOS)
+- Switch Platform to iOS in Build Settings, then build an Xcode project.
+- In Xcode, enable Signing (Team), select your device, and Run; a free “Personal Team” is fine for on-device testing.
+- Validate in GameAnalytics Realtime after a few minutes, as Editor does not send events.
+
+## Repository Hygiene (no secrets)
+- Do NOT commit `Assets/GameAnalytics/Resources/GameAnalytics/Settings.asset`; this file contains per-platform GA keys and must be set up locally.
+- Do NOT commit Apple signing files or device provisioning profiles; each developer signs locally in Xcode.
+- Use the provided `.gitignore` snippet to keep secrets and generated content out of the repo.
+
+## Troubleshooting
+- “Unsupported platform (Editor)”: GameAnalytics does not send events from Editor; use a device build.
+- iOS crash at launch with ATT: Add `NSUserTrackingUsageDescription` and show ATT before GA initialization.
+- Local Network permission on first run in dev: expected due to PlayerConnection/Profiler discovery.
